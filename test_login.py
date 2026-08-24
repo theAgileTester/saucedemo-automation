@@ -1,21 +1,19 @@
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import pytest
-
-BASE_URL = "https://www.saucedemo.com"
+from pages.login_page import LoginPage
+from pages.products_page import ProductsPage
 
 
 def test_valid_login_shows_products_page(driver):
-    driver.get(BASE_URL)
-    driver.find_element(By.ID, "user-name").send_keys("standard_user")
-    driver.find_element(By.ID, "password").send_keys("secret_sauce")
-    driver.find_element(By.ID, "login-button").click()
+    login_page = LoginPage(driver)
+    login_page.load()
+    login_page.login("standard_user", "secret_sauce")
 
-    products_title = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, ".title"))
-    )
-    assert products_title.text == "Products", f"Expected 'Products' but got '{products_title.text}'"
+    products_page = ProductsPage(driver)
+    actual_title = products_page.get_title_text()
+    assert actual_title == "Products", f"Expected 'Products' but got '{actual_title}'"
+
+    actual_url = products_page.get_current_url()
+    assert "inventory.html" in actual_url, f"Expected URL to contain 'inventory.html' but got '{actual_url}'"
 
 
 @pytest.mark.parametrize("username, password, expected_error", [
@@ -24,12 +22,9 @@ def test_valid_login_shows_products_page(driver):
     ("", "", "Username is required"),
 ])
 def test_multiple_invalid_logins(driver, username, password, expected_error):
-    driver.get(BASE_URL)
-    driver.find_element(By.ID, "user-name").send_keys(username)
-    driver.find_element(By.ID, "password").send_keys(password)
-    driver.find_element(By.ID, "login-button").click()
+    login_page = LoginPage(driver)
+    login_page.load()
+    login_page.login(username, password)
 
-    error_message = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "[data-test='error']"))
-    )
-    assert expected_error in error_message.text, f"Expected '{expected_error}' but got: '{error_message.text}'"
+    actual_error = login_page.get_error_message()
+    assert expected_error in actual_error, f"Expected '{expected_error}' but got: '{actual_error}'"
